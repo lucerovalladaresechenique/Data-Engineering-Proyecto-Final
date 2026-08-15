@@ -1,0 +1,41 @@
+{
+  "silver_marcaciones": {
+    "description": "Marcaciones unificadas (API + texto plano), tipadas, deduplicadas, en UTC",
+    "partition_by": "event_date",
+    "primary_key": ["empleado_id", "timestamp_marca", "tipo_marca"],
+    "fields": [
+      {"name": "empleado_id", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "timestamp_marca", "type": "TIMESTAMP", "mode": "REQUIRED", "description": "Normalizado a UTC"},
+      {"name": "tipo_marca", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "metodo_captura", "type": "STRING", "mode": "NULLABLE"},
+      {"name": "fuente", "type": "STRING", "mode": "REQUIRED", "description": "api | texto_plano"},
+      {"name": "event_date", "type": "DATE", "mode": "REQUIRED"}
+    ]
+  },
+  "silver_turnos": {
+    "description": "Turnos asignados, con flag de turno nocturno derivado",
+    "partition_by": "event_date",
+    "primary_key": ["empleado_id", "fecha"],
+    "fields": [
+      {"name": "empleado_id", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "fecha", "type": "DATE", "mode": "REQUIRED"},
+      {"name": "turno_codigo", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "hora_inicio_programada", "type": "TIME", "mode": "REQUIRED"},
+      {"name": "hora_fin_programada", "type": "TIME", "mode": "REQUIRED"},
+      {"name": "es_turno_nocturno", "type": "BOOLEAN", "mode": "REQUIRED", "description": "true si el turno cruza el rango horario nocturno definido por política"},
+      {"name": "event_date", "type": "DATE", "mode": "REQUIRED"}
+    ]
+  },
+  "silver_ausencias": {
+    "description": "Permisos, vacaciones, licencias y suspensiones normalizados",
+    "partition_by": "event_date",
+    "primary_key": ["empleado_id", "tipo_ausencia", "fecha_inicio"],
+    "fields": [
+      {"name": "empleado_id", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "tipo_ausencia", "type": "STRING", "mode": "REQUIRED", "description": "vacaciones | suspension | licencia"},
+      {"name": "fecha_inicio", "type": "DATE", "mode": "REQUIRED"},
+      {"name": "fecha_fin", "type": "DATE", "mode": "REQUIRED"},
+      {"name": "event_date", "type": "DATE", "mode": "REQUIRED"}
+    ]
+  }
+}

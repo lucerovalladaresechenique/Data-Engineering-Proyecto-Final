@@ -1,0 +1,49 @@
+{
+  "fact_asistencia_diaria": {
+    "description": "1 fila por empleado por día, con horas trabajadas y clasificación del día",
+    "grain": "empleado_id, fecha",
+    "fields": [
+      {"name": "empleado_id", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "fecha", "type": "DATE", "mode": "REQUIRED"},
+      {"name": "hora_entrada", "type": "TIMESTAMP", "mode": "NULLABLE"},
+      {"name": "hora_salida", "type": "TIMESTAMP", "mode": "NULLABLE"},
+      {"name": "horas_trabajadas", "type": "FLOAT", "mode": "NULLABLE"},
+      {"name": "horas_extra", "type": "FLOAT", "mode": "NULLABLE"},
+      {"name": "horas_nocturnas", "type": "FLOAT", "mode": "NULLABLE"},
+      {"name": "tardanza_minutos", "type": "INTEGER", "mode": "NULLABLE"},
+      {"name": "tipo_dia", "type": "STRING", "mode": "REQUIRED", "description": "normal | falta | ausencia_justificada"}
+    ]
+  },
+  "fact_ausentismo": {
+    "description": "1 fila por periodo de ausencia por empleado",
+    "grain": "empleado_id, tipo_ausencia, fecha_inicio",
+    "fields": [
+      {"name": "empleado_id", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "tipo_ausencia", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "fecha_inicio", "type": "DATE", "mode": "REQUIRED"},
+      {"name": "fecha_fin", "type": "DATE", "mode": "REQUIRED"},
+      {"name": "dias_ausencia", "type": "INTEGER", "mode": "REQUIRED"}
+    ]
+  },
+  "dim_empleado": {
+    "description": "Dimensión de empleado",
+    "grain": "empleado_id",
+    "fields": [
+      {"name": "empleado_id", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "nombre_completo", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "area", "type": "STRING", "mode": "NULLABLE"},
+      {"name": "cargo", "type": "STRING", "mode": "NULLABLE"},
+      {"name": "estado", "type": "STRING", "mode": "NULLABLE"}
+    ]
+  },
+  "dim_turno": {
+    "description": "Dimensión de turno",
+    "grain": "turno_codigo",
+    "fields": [
+      {"name": "turno_codigo", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "hora_inicio", "type": "TIME", "mode": "REQUIRED"},
+      {"name": "hora_fin", "type": "TIME", "mode": "REQUIRED"},
+      {"name": "es_nocturno", "type": "BOOLEAN", "mode": "REQUIRED"}
+    ]
+  }
+}

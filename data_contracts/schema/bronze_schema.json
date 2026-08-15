@@ -1,0 +1,62 @@
+{
+  "bronze_marcaciones_api": {
+    "description": "Marcaciones biométricas capturadas en línea vía API de GeoVictoria",
+    "source": "api",
+    "partition_by": "ingestion_date",
+    "fields": [
+      {"name": "empleado_id", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "timestamp_marca", "type": "TIMESTAMP", "mode": "REQUIRED"},
+      {"name": "tipo_marca", "type": "STRING", "mode": "REQUIRED", "description": "entrada | salida | inicio_refrigerio | fin_refrigerio"},
+      {"name": "metodo_captura", "type": "STRING", "mode": "NULLABLE", "description": "huella | rostro"},
+      {"name": "dispositivo_id", "type": "STRING", "mode": "NULLABLE"},
+      {"name": "raw_payload", "type": "STRING", "mode": "NULLABLE", "description": "JSON crudo de la respuesta de la API"},
+      {"name": "ingestion_date", "type": "DATE", "mode": "REQUIRED"},
+      {"name": "source_batch_id", "type": "STRING", "mode": "NULLABLE"}
+    ]
+  },
+  "bronze_marcaciones_txt": {
+    "description": "Export histórico/batch en texto plano del reloj biométrico",
+    "source": "texto_plano",
+    "partition_by": "ingestion_date",
+    "fields": [
+      {"name": "empleado_id", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "timestamp_marca", "type": "TIMESTAMP", "mode": "REQUIRED"},
+      {"name": "tipo_marca", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "metodo_captura", "type": "STRING", "mode": "NULLABLE"},
+      {"name": "raw_line", "type": "STRING", "mode": "NULLABLE", "description": "Línea original del archivo, para trazabilidad"},
+      {"name": "ingestion_date", "type": "DATE", "mode": "REQUIRED"},
+      {"name": "source_file_name", "type": "STRING", "mode": "NULLABLE"}
+    ]
+  },
+  "bronze_turnos": {
+    "description": "Turnos asignados por empleado (export CSV)",
+    "source": "csv",
+    "partition_by": "ingestion_date",
+    "fields": [
+      {"name": "empleado_id", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "fecha", "type": "DATE", "mode": "REQUIRED"},
+      {"name": "turno_codigo", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "hora_inicio_programada", "type": "STRING", "mode": "REQUIRED", "description": "HH:MM"},
+      {"name": "hora_fin_programada", "type": "STRING", "mode": "REQUIRED", "description": "HH:MM"},
+      {"name": "ingestion_date", "type": "DATE", "mode": "REQUIRED"},
+      {"name": "source_file_name", "type": "STRING", "mode": "NULLABLE"}
+    ]
+  },
+  "bronze_empleados_permisos": {
+    "description": "Maestro de empleados y permisos/vacaciones/licencias/suspensiones (export Excel de RRHH)",
+    "source": "excel",
+    "partition_by": "ingestion_date",
+    "fields": [
+      {"name": "empleado_id", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "nombre_completo", "type": "STRING", "mode": "REQUIRED"},
+      {"name": "area", "type": "STRING", "mode": "NULLABLE"},
+      {"name": "cargo", "type": "STRING", "mode": "NULLABLE"},
+      {"name": "estado_empleado", "type": "STRING", "mode": "NULLABLE", "description": "activo | inactivo"},
+      {"name": "tipo_permiso", "type": "STRING", "mode": "NULLABLE", "description": "vacaciones | suspension | licencia (nulo si no aplica)"},
+      {"name": "fecha_inicio_permiso", "type": "DATE", "mode": "NULLABLE"},
+      {"name": "fecha_fin_permiso", "type": "DATE", "mode": "NULLABLE"},
+      {"name": "ingestion_date", "type": "DATE", "mode": "REQUIRED"},
+      {"name": "source_file_name", "type": "STRING", "mode": "NULLABLE"}
+    ]
+  }
+}
