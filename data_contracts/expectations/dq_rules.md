@@ -46,11 +46,22 @@ a la de entrada. Regla DQ agregada:
 simples (vacaciones/suspension/licencia) sino 20 valores textuales de GeoVictoria
 (ej. "Descansos Vacacionales", "Licencia sin Goce de Haber", "Subsidio por Accidente",
 "Permiso: Cuidarte es primero"). Se guardan tal cual en `bronze_permisos.tipo_permiso`;
-la clasificación a las 3 categorías de negocio se hace en Silver con una tabla de mapeo
-(pendiente de definir con RRHH cuáles de los 20 cuentan como "ausencia justificada" para
-efectos de `fact_asistencia_diaria.tipo_dia`).
+la clasificación a las 4 categorías de negocio (vacaciones/licencia/suspension/
+capacitacion) se hace en Silver con la tabla de mapeo definida en
+`src/transform/transformer.py` (TIPO_PERMISO_MAP).
 
 **Solo "Solicitud aprobada" excusa una falta.** Los estados "rechazada por administrador",
 "rechazada por jefe" y "esperando autorizacion final" NO deben usarse para justificar
 ausencias en `silver_ausencias` — solo pasan a Silver los registros con
 `estado_solicitud == "Solicitud aprobada"`.
+
+## Limitación conocida: cruce empleado_id vs. empleado_codigo (Gold)
+`silver_ausencias` (Excel de permisos) identifica al empleado por nombre+código (RUT);
+`silver_marcaciones_excel`/`silver_turnos` (GeoVictoria) usan el `Identifier` numérico.
+No existe llave común directa. `gold_transformer.py` cruza por nombre normalizado
+(mayúsculas, sin tildes, espacios colapsados) como solución provisional — es sensible
+a diferencias de orden de apellidos o tildes, e infla el conteo de "falta" en
+`fact_asistencia_diaria` cuando el cruce no calza. Solución recomendada pendiente:
+traer el catálogo real de empleados vía el método `User/List` de la API GeoVictoria
+(requiere autenticación OAuth 1.0, no implementada aún) para un cruce confiable por
+`Identifier`.
