@@ -46,22 +46,35 @@ a la de entrada. Regla DQ agregada:
 simples (vacaciones/suspension/licencia) sino 20 valores textuales de GeoVictoria
 (ej. "Descansos Vacacionales", "Licencia sin Goce de Haber", "Subsidio por Accidente",
 "Permiso: Cuidarte es primero"). Se guardan tal cual en `bronze_permisos.tipo_permiso`;
-la clasificación a las 4 categorías de negocio (vacaciones/licencia/suspension/
-capacitacion) se hace en Silver con la tabla de mapeo definida en
-`src/transform/transformer.py` (TIPO_PERMISO_MAP).
+la clasificación a las 3 categorías de negocio se hace en Silver con una tabla de mapeo
+(pendiente de definir con RRHH cuáles de los 20 cuentan como "ausencia justificada" para
+efectos de `fact_asistencia_diaria.tipo_dia`).
 
 **Solo "Solicitud aprobada" excusa una falta.** Los estados "rechazada por administrador",
 "rechazada por jefe" y "esperando autorizacion final" NO deben usarse para justificar
 ausencias en `silver_ausencias` — solo pasan a Silver los registros con
 `estado_solicitud == "Solicitud aprobada"`.
 
-## Limitación conocida: cruce empleado_id vs. empleado_codigo (Gold)
-`silver_ausencias` (Excel de permisos) identifica al empleado por nombre+código (RUT);
-`silver_marcaciones_excel`/`silver_turnos` (GeoVictoria) usan el `Identifier` numérico.
-No existe llave común directa. `gold_transformer.py` cruza por nombre normalizado
-(mayúsculas, sin tildes, espacios colapsados) como solución provisional — es sensible
-a diferencias de orden de apellidos o tildes, e infla el conteo de "falta" en
-`fact_asistencia_diaria` cuando el cruce no calza. Solución recomendada pendiente:
-traer el catálogo real de empleados vía el método `User/List` de la API GeoVictoria
-(requiere autenticación OAuth 1.0, no implementada aún) para un cruce confiable por
-`Identifier`.
+## Impacto medido del cruce por nombre (dato real, junio 2026)
+Con el pipeline corriendo a escala completa (2,121 empleados, junio 2026) sobre
+BigQuery, se midió el impacto real de la limitación de cruce por nombre descrita
+arriba:
+
+| Métrica | Valor |
+|---|---|
+| Total días evaluados (`fact_asistencia_diaria`) | 50,910 |
+| `tipo_dia = normal` | 35,818 (70.4%) |
+| `tipo_dia = falta` | 12,219 (24.0%) |
+| `tipo_dia = ausencia_justificada` | 2,873 (5.6%) |
+| Empleados con cruce completo (ID de marcaciones + código de permisos) | 350 (~40% de los que tienen permisos) |
+
+**Lectura crítica:** un 24% de ausentismo es implausible para una organización real
+(tasas típicas rondan 2-5%). Combinado con que solo ~40% de los permisos lograron
+cruzar por nombre con el catálogo de marcaciones, es altamente probable que una
+parte significativa del 24% de "falta" corresponda en realidad a ausencias
+justificadas que no se conectaron por el problema de cruce documentado arriba.
+
+**Decisión del equipo:** no se implementó la solución (User/List vía OAuth 1.0)
+por restricción de tiempo del proyecto. Se documenta como limitación conocida y
+cuantificada, no como un hallazgo oculto — el número de "falta" reportado en Gold
+debe interpretarse como un límite superior, no como el ausentismo real.
