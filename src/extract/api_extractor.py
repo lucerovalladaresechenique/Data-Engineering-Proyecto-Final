@@ -112,15 +112,70 @@ class GeoVictoriaAPIExtractor:
         payload = {
             "StartDate": datetime.combine(start_date, datetime.min.time()).strftime(DATE_FMT),
             "EndDate": datetime.combine(end_date, datetime.max.time()).strftime(DATE_FMT),
-            "UserIds": user_ids,
+            "UserIds": ",".join(user_ids),  # la API espera string con comas, no array JSON, pese al tipo documentado
         }
         logger.info(f"AttendanceBook: {start_date} → {end_date} | {len(user_ids)} colaboradores")
+        logger.info(f"Payload enviado: {payload}")
 
         resp = self.session.post(url, headers=self._auth_headers(), json=payload, timeout=self.timeout)
+        if not resp.ok:
+            logger.error(f"AttendanceBook falló ({resp.status_code}). Respuesta de la API: {resp.text}")
         resp.raise_for_status()
         users = resp.json().get("Users", [])
         logger.info(f"✓ {len(users)} colaboradores recibidos")
         return users
+
+    def extract_attendance_book_batched(
+        self,
+        start_date: date,
+        end_date: date,
+        user_ids: list[str],
+        max_users_per_call: int = 200,
+        max_records_per_call: int = 1500,
+        delay_between_calls: float = 0.3,
+    ) -> list[dict]:
+        """
+        Igual que extract_attendance_book, pero respeta los DOS límites reales
+        de la API GeoVictoria:
+          - máximo `max_users_per_call` usuarios por llamada (OutOfLimitException 0123)
+          - máximo `max_records_per_call` registros totales (usuarios × días) por
+            llamada (OutOfLimitException 0008)
+
+        Se parte tanto por lotes de empleados como por ventanas de fechas, y se
+        juntan los resultados de todas las llamadas.
+        """
+        total_days = (end_date - start_date).days + 1
+        # Con max_users_per_call fijo, calcula cuántos días caben sin pasar el
+        # límite de registros totales (ej. 200 usuarios → 1500//200 = 7 días).
+        days_per_batch = max(1, max_records_per_call // max_users_per_call)
+
+        all_users: list[dict] = []
+        user_batches = [user_ids[i : i + max_users_per_call] for i in range(0, len(user_ids), max_users_per_call)]
+
+        date_batches = []
+        cursor = start_date
+        while cursor <= end_date:
+            batch_end = min(end_date, date.fromordinal(cursor.toordinal() + days_per_batch - 1))
+            date_batches.append((cursor, batch_end))
+            cursor = date.fromordinal(batch_end.toordinal() + 1)
+
+        total_calls = len(user_batches) * len(date_batches)
+        logger.info(
+            f"Batching AttendanceBook: {len(user_batches)} lotes de empleados × "
+            f"{len(date_batches)} ventanas de fechas = {total_calls} llamadas totales"
+        )
+
+        call_num = 0
+        for batch_start, batch_end in date_batches:
+            for user_batch in user_batches:
+                call_num += 1
+                logger.info(f"Llamada {call_num}/{total_calls}: {batch_start}→{batch_end} | {len(user_batch)} empleados")
+                users = self.extract_attendance_book(batch_start, batch_end, user_batch)
+                all_users.extend(users)
+                time.sleep(delay_between_calls)
+
+        logger.info(f"✓ {len(all_users)} registros de colaborador/ventana recibidos en total ({total_calls} llamadas)")
+        return all_users
 
     def extract_attendance_book_by_day(
         self, start_date: date, end_date: date, user_ids: list[str], delay_between_calls: float = 0.2

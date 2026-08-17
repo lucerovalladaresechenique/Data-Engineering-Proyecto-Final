@@ -53,24 +53,11 @@ class GCSLoader:
         self.layer = layer
 
         self._client = storage.Client(project=self.project_id)
-        self._bucket = self._get_bucket()
+        # No se llama a get_bucket() aquí: requeriría el permiso storage.buckets.get,
+        # que el rol "Storage Object Admin" NO incluye (ese rol es a nivel de objeto).
+        # self._client.bucket(...) solo construye la referencia local, sin llamar a la API.
+        self._bucket = self._client.bucket(self.bucket_name)
         logger.info(f"GCSLoader → gs://{self.bucket_name}/{self.layer}/ [{self.project_id}]")
-
-    def _get_bucket(self):
-        try:
-            bucket = self._client.get_bucket(self.bucket_name)
-            logger.info(f"✓ Conectado a GCS bucket: {self.bucket_name}")
-            return bucket
-        except NotFound:
-            raise ValueError(
-                f"Bucket '{self.bucket_name}' no encontrado en proyecto '{self.project_id}'.\n"
-                "Créalo con: gsutil mb -p <project_id> gs://<bucket_name>"
-            )
-        except Forbidden:
-            raise PermissionError(
-                f"Sin permisos para acceder a gs://{self.bucket_name}.\n"
-                "Verifica que la cuenta de servicio tenga el rol 'Storage Object Admin'."
-            )
 
     def _build_blob_name(self, table_name: str, ingestion_date: date) -> str:
         return f"{self.layer}/{table_name}/ingestion_date={ingestion_date.isoformat()}/data.parquet"
@@ -87,7 +74,21 @@ class GCSLoader:
 
         blob = self._bucket.blob(blob_name)
         blob.metadata = {"table_name": table_name, "record_count": str(len(df)), "uploaded_by": "asistencia-etl"}
-        blob.upload_from_file(buffer, content_type="application/octet-stream")
+        try:
+            blob.upload_from_file(buffer, content_type="application/octet-stream")
+        except NotFound:
+            raise ValueError(
+                f"Bucket '{self.bucket_name}' no encontrado en proyecto '{self.project_id}'.\n"
+                "Créalo con: gsutil mb -p <project_id> gs://<bucket_name>"
+            )
+        except Forbidden as e:
+            logger.error(f"Detalle del error de GCP: {e}")
+            raise PermissionError(
+                f"Sin permisos para escribir en gs://{self.bucket_name}/{blob_name}.\n"
+                f"Detalle: {e}\n"
+                "Verifica que la cuenta de servicio tenga el rol 'Storage Object Admin' "
+                "asignado sobre ESTE bucket específicamente (no solo a nivel de proyecto)."
+            )
 
         size_kb = buffer.tell() / 1024
         logger.info(f"✓ Subido: {gcs_uri} ({size_kb:.1f} KB)")

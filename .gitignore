@@ -84,3 +84,5 @@ data_samples/*
 !data_samples/README.md
 
 ~$*
+
+credentials/
