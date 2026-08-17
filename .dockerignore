@@ -1,0 +1,11 @@
+.venv/
+.git/
+.gitignore
+out/
+out_test_bronze/
+__pycache__/
+**/__pycache__/
+*.pyc
+credentials/
+.env
+*.log

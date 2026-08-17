@@ -51,6 +51,39 @@ def _attendance_book_to_bronze_df(users_raw: list[dict]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def _find_latest_excel_in_gcs(bucket_name: str, prefix: str, project_id: str) -> str | None:
+    """
+    Busca el .xlsx más reciente (por fecha de modificación) bajo un prefijo en
+    GCS y lo descarga a /tmp. Convención esperada:
+        gs://<bucket>/raw-uploads/permisos/*.xlsx
+        gs://<bucket>/raw-uploads/marcaciones/*.xlsx
+    RRHH sube el export nuevo ahí (manual); el Job automatizado siempre toma
+    el más reciente, sin necesidad de indicar la ruta exacta cada corrida.
+    """
+    from google.cloud import storage
+
+    client = storage.Client(project=project_id)
+    blobs = [b for b in client.list_blobs(bucket_name, prefix=prefix) if b.name.endswith(".xlsx")]
+    if not blobs:
+        logger.warning(f"No se encontró ningún .xlsx en gs://{bucket_name}/{prefix}")
+        return None
+
+    latest = max(blobs, key=lambda b: b.updated)
+    local_path = f"/tmp/{os.path.basename(latest.name)}"
+    latest.download_to_filename(local_path)
+    logger.info(f"✓ Descargado el más reciente: gs://{bucket_name}/{latest.name} (modificado {latest.updated}) → {local_path}")
+    return local_path
+
+
+def _resolve_excel_path(explicit_path: str | None, gcs_prefix: str, cloud_provider: str, bucket: str, project_id: str) -> str | None:
+    """Si se pasó una ruta explícita, la usa. Si no y estamos en GCP, busca la más reciente en GCS."""
+    if explicit_path:
+        return explicit_path
+    if cloud_provider == "gcp":
+        return _find_latest_excel_in_gcs(bucket, gcs_prefix, project_id)
+    return None
+
+
 def run(
     start_date: date,
     end_date: date,
@@ -77,6 +110,14 @@ def run(
         logger.warning("Credenciales de GeoVictoria no configuradas en .env — se omite extracción de API")
 
     file_extractor = ExcelExtractor()
+
+    permisos_file = _resolve_excel_path(
+        permisos_file, "raw-uploads/permisos/", cloud_provider, os.getenv("GCS_BUCKET"), os.getenv("GCP_PROJECT_ID")
+    )
+    marcaciones_file = _resolve_excel_path(
+        marcaciones_file, "raw-uploads/marcaciones/", cloud_provider, os.getenv("GCS_BUCKET"), os.getenv("GCP_PROJECT_ID")
+    )
+
     if permisos_file:
         permisos_df = file_extractor.extract_permisos(permisos_file)
         # Alinea al mismo rango de fechas que la API: conserva solo permisos cuyo
