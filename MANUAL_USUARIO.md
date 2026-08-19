@@ -36,16 +36,19 @@ No requiere ningún archivo `.env` ni credenciales. Guarda los resultados en
 una carpeta `out/` dentro del proyecto.
 
 
-  # Paso 1: Abrir consola PowerShell y navegar hasta la carpeta del proyecto
+  ### Paso 1: Abrir consola PowerShell y navegar hasta la carpeta del proyecto
+  ```bash
   cd (Ruta del proyecto )
+  ```
 
-  # Paso 2:. Ejecutar comando para construir la imagen
+  ### Paso 2:. Ejecutar comando para construir la imagen
+  ```bash
   docker build -t asistencia-etl .
-
-  # Paso3: Ejecutar comando para ejecutar el pipeline completo (Bronze -> Silver -> Gold) para un día
-
+  ```
+  ### Paso3: Ejecutar comando para ejecutar el pipeline completo (Bronze -> Silver -> Gold) para un día
+  ```bash
   docker run --rm -e CLOUD_PROVIDER=local -e OUTPUT_DIR=/app/out -e FECHA=2026-06-01 -e ARCHIVO_MARCACIONES=/app/data_samples/Marcaciones_GeoVictoria.xlsx -e ARCHIVO_PERMISOS=/app/data_samples/HistorialdeSolicitudes.xlsx -v ${PWD}/out:/app/out asistencia-etl
-
+  ```
   ### Nota:
     **Tiempo esperado:** 2-5 minutos (procesa ~250,000 marcas y ~1,500 solicitudes
     de permiso reales).
@@ -64,14 +67,16 @@ una carpeta `out/` dentro del proyecto.
 
     Si termina sin ninguna línea `Traceback` ni `Error`, la ejecución fue exitosa.
 
-  ## Paso 4: Ejecutar comando para verificar los resultados
+  ### Paso 4: Ejecutar comando para verificar los resultados
 
   Linux:
+  ```bash
   find out/ -name "*.parquet" 
-
+  ```
   Windows:
+  ```bash
   Get-ChildItem -Recurse out\*.parquet
-
+  ```
 
   ### Debería listar archivos en 3 capas:
     ```
@@ -88,6 +93,8 @@ una carpeta `out/` dentro del proyecto.
   ### Inspeccionar el contenido (opcional, requiere Python + pandas)
 
   Linux:
+
+  ```bash
     python3 -c "
     import pandas as pd
     df = pd.read_parquet('out/gold/fact_asistencia_diaria/ingestion_date=2026-06-01/data.parquet')
@@ -95,8 +102,11 @@ una carpeta `out/` dentro del proyecto.
     print(df.head())
     print(df['tipo_dia'].value_counts())
     "
+  ```
 
-    Windows:
+  Windows:
+
+    ```bash
     python -c "
     import pandas as pd
     df = pd.read_parquet('out/gold/fact_asistencia_diaria/ingestion_date=2026-06-01/data.parquet')
@@ -104,6 +114,7 @@ una carpeta `out/` dentro del proyecto.
     print(df.head())
     print(df['tipo_dia'].value_counts())
     "
+    ```
     
 
   ## Proceso Alternativo. Ingresar comandos para ejecutar pipeline sin Docker desde vs code.
