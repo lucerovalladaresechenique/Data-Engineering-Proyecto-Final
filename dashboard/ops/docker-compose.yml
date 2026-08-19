@@ -1,0 +1,14 @@
+services:
+  dashboard:
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile
+    ports:
+      - "8501:8501"
+    env_file:
+      - ../.env
+    volumes:
+      # Monta el service account key si usas GOOGLE_APPLICATION_CREDENTIALS
+      - ${GOOGLE_APPLICATION_CREDENTIALS_HOST:-/dev/null}:/secrets/gcp-key.json:ro
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-key.json
