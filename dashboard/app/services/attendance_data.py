@@ -19,7 +19,8 @@ from glob import glob
 from typing import Optional
 
 import pandas as pd
-from tenacity import retry, stop_after_attempt, wait_exponential
+from google.api_core import exceptions as google_exceptions
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from app.config.settings import AppSettings, get_settings
 from app.services.cache import cached
@@ -88,7 +89,18 @@ class AttendanceDataService:
             self._bq_client = bigquery.Client(project=self.settings.gcp_project)
         return self._bq_client
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=8))
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=8),
+        retry=retry_if_exception_type(
+            (
+                google_exceptions.ServerError,
+                google_exceptions.TooManyRequests,
+                google_exceptions.ServiceUnavailable,
+            )
+        ),
+        reraise=True,
+    )
     def _run_query(self, sql: str) -> pd.DataFrame:
         client = self._get_bq_client()
         return client.query(sql).to_dataframe()
@@ -135,7 +147,8 @@ class AttendanceDataService:
                     f.horas_nocturnas,
                     f.tardanza_minutos
                 FROM `{s.fqn_fact_asistencia}` f
-                JOIN `{s.fqn_dim_empleado}` e ON f.empleado_id = e.empleado_id
+                JOIN `{s.fqn_dim_empleado}` e
+                    ON CAST(f.empleado_id AS STRING) = CAST(e.empleado_id AS STRING)
                 {where_sql}
             """
             try:
@@ -201,7 +214,7 @@ class AttendanceDataService:
                     e.area
                 FROM `{s.fqn_fact_ausentismo}` a
                 LEFT JOIN `{s.fqn_dim_empleado}` e
-                    ON a.empleado_codigo = e.empleado_codigo
+                    ON CAST(a.empleado_codigo AS STRING) = CAST(e.empleado_codigo AS STRING)
                 {where_sql}
             """
             try:
