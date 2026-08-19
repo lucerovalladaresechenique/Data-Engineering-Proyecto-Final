@@ -80,42 +80,42 @@ una carpeta `out/` dentro del proyecto.
 
   #### Debería listar archivos en 3 capas:
     
-    ```
-    out/bronze/bronze_permisos/ingestion_date=2026-06-01/data.parquet
-    out/bronze/bronze_marcaciones_excel/ingestion_date=2026-06-01/data.parquet
-    out/silver/silver_permisos.../data.parquet
-    out/silver/silver_marcaciones_excel/.../data.parquet
-    out/gold/fact_asistencia_diaria/ingestion_date=2026-06-01/data.parquet
-    out/gold/fact_ausentismo/.../data.parquet
-    out/gold/dim_empleado/.../data.parquet
-    out/gold/dim_turno/.../data.parquet   (abriendo el archivo se encontrará 0 filas: no se consultó la API en esta prueba, ver sección 6)
-    ```
+  ```
+  out/bronze/bronze_permisos/ingestion_date=2026-06-01/data.parquet
+  out/bronze/bronze_marcaciones_excel/ingestion_date=2026-06-01/data.parquet
+  out/silver/silver_permisos.../data.parquet
+  out/silver/silver_marcaciones_excel/.../data.parquet
+  out/gold/fact_asistencia_diaria/ingestion_date=2026-06-01/data.parquet
+  out/gold/fact_ausentismo/.../data.parquet
+  out/gold/dim_empleado/.../data.parquet
+  out/gold/dim_turno/.../data.parquet   (abriendo el archivo se encontrará 0 filas: no se consultó la API en esta prueba, ver sección 6)
+  ```
 
   #### Inspeccionar el contenido (opcional, requiere Python + pandas)
 
   Linux:
 
-    ```bash
-    python3 -c "
-    import pandas as pd
-    df = pd.read_parquet('out/gold/fact_asistencia_diaria/ingestion_date=2026-06-01/data.parquet')
-    print(df.shape)
-    print(df.head())
-    print(df['tipo_dia'].value_counts())
-    "
-    ```
+  ```bash
+  python3 -c "
+  import pandas as pd
+  df = pd.read_parquet('out/gold/fact_asistencia_diaria/ingestion_date=2026-06-01/data.parquet')
+  print(df.shape)
+  print(df.head())
+  print(df['tipo_dia'].value_counts())
+  "
+  ```
 
   Windows:
 
-    ```bash
-    python -c "
-    import pandas as pd
-    df = pd.read_parquet('out/gold/fact_asistencia_diaria/ingestion_date=2026-06-01/data.parquet')
-    print(df.shape)
-    print(df.head())
-    print(df['tipo_dia'].value_counts())
-    "
-    ```
+  ```bash
+  python -c "
+  import pandas as pd
+  df = pd.read_parquet('out/gold/fact_asistencia_diaria/ingestion_date=2026-06-01/data.parquet')
+  print(df.shape)
+  print(df.head())
+  print(df['tipo_dia'].value_counts())
+  "
+  ```
     
 
   ## Proceso Alternativo. Ingresar comandos para ejecutar pipeline sin Docker desde vs code.
