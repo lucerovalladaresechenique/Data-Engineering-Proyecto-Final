@@ -6,7 +6,7 @@ usando los datos de ejemplo incluidos.
 
 ---
 
-## 1. Requisitos previos
+## Requisitos previos
 
 - Docker instalado y corriendo (`docker --version` debe responder).
 - ~500 MB libres en disco (imagen + datos de prueba).
@@ -14,7 +14,7 @@ usando los datos de ejemplo incluidos.
 No se necesita Python instalado en la máquina host — todo corre dentro del
 contenedor.
 
-## 2. Contenido del proyecto
+## Contenido del proyecto
 
 ```
 Proyecto_Lucero/
@@ -30,93 +30,100 @@ Proyecto_Lucero/
 └── architecture/              ← documentación de arquitectura y decisiones
 ```
 
-## 3. Prueba rápida (recomendada) — Docker en modo local
+## Prueba rápida (recomendada) — Docker en modo local
 
 No requiere ningún archivo `.env` ni credenciales. Guarda los resultados en
 una carpeta `out/` dentro del proyecto.
 
-```bash
-cd Proyecto_Lucero
 
-# 1. Construir la imagen
-docker build -t asistencia-etl .
+  # Paso 1: Abrir consola PowerShell y navegar hasta la carpeta del proyecto
+  cd (Ruta del proyecto )
 
-# 2. Ejecutar el pipeline completo (Bronze -> Silver -> Gold) para un día
-docker run --rm \
-  -e CLOUD_PROVIDER=local \
-  -e OUTPUT_DIR=/app/out \
-  -e FECHA=2026-06-01 \
-  -e ARCHIVO_MARCACIONES=/app/data_samples/Marcaciones_GeoVictoria.xlsx \
-  -e ARCHIVO_PERMISOS=/app/data_samples/HistorialdeSolicitudes.xlsx \
-  -v $(pwd)/out:/app/out \
-  asistencia-etl
-```
+  # Paso 2:. Ejecutar comando para construir la imagen
+  docker build -t asistencia-etl .
 
-**Tiempo esperado:** 2-5 minutos (procesa ~250,000 marcas y ~1,500 solicitudes
-de permiso reales).
+  # Paso3: Ejecutar comando para ejecutar el pipeline completo (Bronze -> Silver -> Gold) para un día
 
-### Qué debería pasar
+  docker run --rm -e CLOUD_PROVIDER=local -e OUTPUT_DIR=/app/out -e FECHA=2026-06-01 -e ARCHIVO_MARCACIONES=/app/data_samples/Marcaciones_GeoVictoria.xlsx -e ARCHIVO_PERMISOS=/app/data_samples/HistorialdeSolicitudes.xlsx -v ${PWD}/out:/app/out asistencia-etl
 
-En la terminal se ven logs estructurados por etapa:
-```
-=== Ejecución automatizada — fecha: 2026-06-01 | ... empleados ===
-✓ Bronze aterrizado: [...]
-=== Transformación completa === {...}
-=== Pipeline completo === stats={...}
-=== Pipeline Gold completo === stats={...}
-=== Ejecución automatizada completa ===
-```
+  ### Nota:
+    **Tiempo esperado:** 2-5 minutos (procesa ~250,000 marcas y ~1,500 solicitudes
+    de permiso reales).
 
-Si termina sin ninguna línea `Traceback` ni `Error`, la ejecución fue exitosa.
+  ### Qué debería pasar
 
-## 4. Verificar los resultados
+    En la terminal se ven logs estructurados por etapa:
+    ```
+    === Ejecución automatizada — fecha: 2026-06-01 | ... empleados ===
+    ✓ Bronze aterrizado: [...]
+    === Transformación completa === {...}
+    === Pipeline completo === stats={...}
+    === Pipeline Gold completo === stats={...}
+    === Ejecución automatizada completa ===
+    ```
 
-```bash
-find out/ -name "*.parquet"
-```
+    Si termina sin ninguna línea `Traceback` ni `Error`, la ejecución fue exitosa.
 
-Debería listar archivos en 3 capas:
-```
-out/bronze/bronze_permisos/ingestion_date=2026-06-01/data.parquet
-out/bronze/bronze_marcaciones_excel/ingestion_date=2026-06-01/data.parquet
-out/silver/silver_permisos.../data.parquet
-out/silver/silver_marcaciones_excel/.../data.parquet
-out/gold/fact_asistencia_diaria/ingestion_date=2026-06-01/data.parquet
-out/gold/fact_ausentismo/.../data.parquet
-out/gold/dim_empleado/.../data.parquet
-out/gold/dim_turno/.../data.parquet   (0 filas: no se consultó la API en esta prueba, ver sección 6)
-```
+  ## Paso 4: Ejecutar comando para verificar los resultados
 
-### Inspeccionar el contenido (opcional, requiere Python + pandas)
+  Linux:
+  find out/ -name "*.parquet" 
 
-```bash
-python3 -c "
-import pandas as pd
-df = pd.read_parquet('out/gold/fact_asistencia_diaria/ingestion_date=2026-06-01/data.parquet')
-print(df.shape)
-print(df.head())
-print(df['tipo_dia'].value_counts())
-"
-```
+  Windows:
+  Get-ChildItem -Recurse out\*.parquet
 
-## 5. Ejecutar sin Docker (alternativa)
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+  ### Debería listar archivos en 3 capas:
+    ```
+    out/bronze/bronze_permisos/ingestion_date=2026-06-01/data.parquet
+    out/bronze/bronze_marcaciones_excel/ingestion_date=2026-06-01/data.parquet
+    out/silver/silver_permisos.../data.parquet
+    out/silver/silver_marcaciones_excel/.../data.parquet
+    out/gold/fact_asistencia_diaria/ingestion_date=2026-06-01/data.parquet
+    out/gold/fact_ausentismo/.../data.parquet
+    out/gold/dim_empleado/.../data.parquet
+    out/gold/dim_turno/.../data.parquet   (abriendo el archivo se encontrará 0 filas: no se consultó la API en esta prueba, ver sección 6)
+  ```
 
-python3 list_empleados.py data_samples/Marcaciones_GeoVictoria.xlsx  # genera empleados.txt
+  ### Inspeccionar el contenido (opcional, requiere Python + pandas)
 
-python3 run_pipeline.py --fecha-inicio 2026-06-01 --fecha-fin 2026-06-30 \
-    --empleados-file empleados.txt \
-    --archivo-permisos data_samples/HistorialdeSolicitudes.xlsx \
-    --archivo-marcaciones data_samples/Marcaciones_GeoVictoria.xlsx
+  Linux:
+    python3 -c "
+    import pandas as pd
+    df = pd.read_parquet('out/gold/fact_asistencia_diaria/ingestion_date=2026-06-01/data.parquet')
+    print(df.shape)
+    print(df.head())
+    print(df['tipo_dia'].value_counts())
+    "
 
-python3 run_gold_pipeline.py --fecha 2026-06-01
-```
+    Windows:
+    python -c "
+    import pandas as pd
+    df = pd.read_parquet('out/gold/fact_asistencia_diaria/ingestion_date=2026-06-01/data.parquet')
+    print(df.shape)
+    print(df.head())
+    print(df['tipo_dia'].value_counts())
+    "
+    
 
-## 6. Sobre la parte de API y la nube (GCP)
+  ## Proceso Alternativo. Ingresar comandos para ejecutar pipeline sin Docker desde vs code.
+
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  pip install -r requirements.txt
+
+  python3 list_empleados.py data_samples/Marcaciones_GeoVictoria.xlsx  # genera empleados.txt
+
+  python3 run_pipeline.py --fecha-inicio 2026-06-01 --fecha-fin 2026-06-30 \
+      --empleados-file empleados.txt \
+      --archivo-permisos data_samples/HistorialdeSolicitudes.xlsx \
+      --archivo-marcaciones data_samples/Marcaciones_GeoVictoria.xlsx
+
+  python3 run_gold_pipeline.py --fecha 2026-06-01
+  ```
+
+## Sobre la parte de API y la nube (GCP)
 
 Esta prueba local **no incluye** la extracción vía API de GeoVictoria (por
 eso `dim_turno` sale vacío) ni la carga real a Google Cloud Storage/BigQuery,
@@ -130,7 +137,7 @@ completo (`src/extract/api_extractor.py`, `src/load/gcp_loader.py`,
 `src/load/bq_loader.py`) está disponible para revisión en el repositorio,
 aunque no se ejecute en esta prueba local.
 
-## 7. Documentación de referencia
+## Documentación de referencia
 
 - `README.md` — resumen técnico completo, decisiones y limitaciones conocidas
 - `architecture/architecture.md` — arquitectura y diagrama
