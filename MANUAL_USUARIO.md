@@ -49,11 +49,11 @@ una carpeta `out/` dentro del proyecto.
   ```bash
   docker run --rm -e CLOUD_PROVIDER=local -e OUTPUT_DIR=/app/out -e FECHA=2026-06-01 -e ARCHIVO_MARCACIONES=/app/data_samples/Marcaciones_GeoVictoria.xlsx -e ARCHIVO_PERMISOS=/app/data_samples/HistorialdeSolicitudes.xlsx -v ${PWD}/out:/app/out asistencia-etl
   ```
-  ### Nota:
+  #### Nota:
     **Tiempo esperado:** 2-5 minutos (procesa ~250,000 marcas y ~1,500 solicitudes
     de permiso reales).
 
-  ### Qué debería pasar
+  #### Qué debería pasar
 
     En la terminal se ven logs estructurados por etapa:
     ```
@@ -78,7 +78,8 @@ una carpeta `out/` dentro del proyecto.
   Get-ChildItem -Recurse out\*.parquet
   ```
 
-  ### Debería listar archivos en 3 capas:
+  #### Debería listar archivos en 3 capas:
+    
     ```
     out/bronze/bronze_permisos/ingestion_date=2026-06-01/data.parquet
     out/bronze/bronze_marcaciones_excel/ingestion_date=2026-06-01/data.parquet
@@ -88,13 +89,13 @@ una carpeta `out/` dentro del proyecto.
     out/gold/fact_ausentismo/.../data.parquet
     out/gold/dim_empleado/.../data.parquet
     out/gold/dim_turno/.../data.parquet   (abriendo el archivo se encontrará 0 filas: no se consultó la API en esta prueba, ver sección 6)
-  ```
+    ```
 
-  ### Inspeccionar el contenido (opcional, requiere Python + pandas)
+  #### Inspeccionar el contenido (opcional, requiere Python + pandas)
 
   Linux:
 
-  ```bash
+    ```bash
     python3 -c "
     import pandas as pd
     df = pd.read_parquet('out/gold/fact_asistencia_diaria/ingestion_date=2026-06-01/data.parquet')
@@ -102,7 +103,7 @@ una carpeta `out/` dentro del proyecto.
     print(df.head())
     print(df['tipo_dia'].value_counts())
     "
-  ```
+    ```
 
   Windows:
 
@@ -123,14 +124,17 @@ una carpeta `out/` dentro del proyecto.
   python3 -m venv .venv
   source .venv/bin/activate
   pip install -r requirements.txt
-
+  ```
+  ```bash
   python3 list_empleados.py data_samples/Marcaciones_GeoVictoria.xlsx  # genera empleados.txt
-
+  ```
+  ```bash
   python3 run_pipeline.py --fecha-inicio 2026-06-01 --fecha-fin 2026-06-30 \
       --empleados-file empleados.txt \
       --archivo-permisos data_samples/HistorialdeSolicitudes.xlsx \
       --archivo-marcaciones data_samples/Marcaciones_GeoVictoria.xlsx
-
+  ```
+  ```bash
   python3 run_gold_pipeline.py --fecha 2026-06-01
   ```
 
@@ -156,7 +160,7 @@ aunque no se ejecute en esta prueba local.
 - `architecture/dq_rules.md` — reglas de calidad de datos, incluyendo el
   hallazgo cuantificado sobre el cruce de nombres (limitación conocida)
 
-## 8. Problemas comunes
+## Problemas comunes
 
 | Síntoma | Causa probable |
 |---|---|
